@@ -1,0 +1,421 @@
+import streamlit as st
+
+st.set_page_config(page_title="Sustainability App", page_icon="🌿")
+st.title("Sustainability Calculators")
+st.caption("Estimates only. Real impact depends on your country and habits.")
+
+page = st.sidebar.radio(
+    "Choose a calculator",
+    [
+        "Carbon footprint",
+        "Home energy",
+        "Water footprint",
+        "Waste and recycling",
+        "Diet impact",
+        "Transport",
+        "Ecological footprint",
+        "Shopping and goods",
+        "Digital footprint",
+        "Living score",
+        "Guide",
+    ],
+)
+
+if page == "Carbon footprint":
+    st.header("Carbon footprint")
+    st.write("Estimate yearly greenhouse gases from everyday activities (kg CO2e).")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        electricity = st.number_input("Home electricity (kWh per month)", min_value=0.0, value=150.0)
+        car_km = st.number_input("Car travel (km per week)", min_value=0.0, value=50.0)
+        bus_km = st.number_input("Bus travel (km per week)", min_value=0.0, value=10.0)
+    with col2:
+        flights = st.number_input("Short flights per year", min_value=0, value=0)
+        meat_meals = st.number_input("Meat meals per week", min_value=0.0, value=5.0)
+        shopping = st.number_input("New shopping (approx. $ per month)", min_value=0.0, value=40.0)
+
+    electricity_co2 = electricity * 12 * 0.4
+    car_co2 = car_km * 52 * 0.17
+    bus_co2 = bus_km * 52 * 0.08
+    flight_co2 = flights * 250
+    food_co2 = meat_meals * 52 * 2.5
+    shopping_co2 = shopping * 12 * 0.5
+    total = electricity_co2 + car_co2 + bus_co2 + flight_co2 + food_co2 + shopping_co2
+
+    if st.button("Calculate carbon"):
+        st.session_state["carbon"] = total
+        st.subheader(f"About {total:,.0f} kg CO2e per year")
+        st.write("A common personal target to discuss is under 2,000 kg per year.")
+        st.bar_chart({
+            "Electricity": electricity_co2,
+            "Car": car_co2,
+            "Bus": bus_co2,
+            "Flights": flight_co2,
+            "Food": food_co2,
+            "Shopping": shopping_co2,
+        })
+        st.markdown("**Tips**")
+        if car_co2 > 500:
+            st.write("- Walk, cycle, or use the bus for short trips.")
+        if meat_meals > 7:
+            st.write("- Try a few plant-based meals each week.")
+        if electricity > 200:
+            st.write("- Turn off lights and devices when you leave a room.")
+        if total < 2000:
+            st.success("This estimate is in a lower range. Small habits still help.")
+        else:
+            st.info("Focus on the biggest bar first. That change saves the most.")
+
+elif page == "Home energy":
+    st.header("Home energy")
+    st.write("Estimate electricity and fuel used at home.")
+
+    people = st.number_input("People in the home", min_value=1, value=4)
+    elec = st.number_input("Electricity (kWh per month)", min_value=0.0, value=150.0)
+    fan_hours = st.number_input("Fan or AC hours per day", min_value=0.0, value=4.0)
+    led_count = st.number_input("Lights left on (count)", min_value=0, value=3)
+    gas_kg = st.number_input("Cooking gas (kg per month)", min_value=0.0, value=6.0)
+
+    yearly_kwh = elec * 12
+    fan_kwh = fan_hours * 0.07 * 365
+    light_kwh = led_count * 0.01 * 5 * 365
+    gas_co2 = gas_kg * 12 * 2.9
+    elec_co2 = (yearly_kwh + fan_kwh + light_kwh) * 0.4
+    per_person = yearly_kwh / people
+
+    if st.button("Calculate energy"):
+        st.session_state["energy"] = yearly_kwh
+        st.subheader(f"About {yearly_kwh:,.0f} kWh electricity per year")
+        st.write(f"About {per_person:,.0f} kWh per person.")
+        st.write(f"Estimated home emissions: {elec_co2 + gas_co2:,.0f} kg CO2e per year.")
+        st.bar_chart({
+            "Billed electricity": yearly_kwh,
+            "Fans / AC (extra)": fan_kwh,
+            "Lights (extra)": light_kwh,
+        })
+        st.markdown("**Tips**")
+        if fan_hours > 6:
+            st.write("- Use a fan before turning on AC, and set AC near 24–26°C.")
+        if led_count > 2:
+            st.write("- Switch off lights in empty rooms.")
+        if per_person > 1000:
+            st.write("- Unplug chargers and devices that are not in use.")
+        else:
+            st.success("Per-person electricity is in a moderate range.")
+
+elif page == "Water footprint":
+    st.header("Water footprint")
+    st.write("Direct household water plus hidden water in food (litres per year).")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        shower = st.number_input("Shower minutes per day", min_value=0.0, value=8.0)
+        laundry = st.number_input("Laundry loads per week", min_value=0.0, value=3.0)
+        tap = st.number_input("Tap and dishes (litres per day)", min_value=0.0, value=40.0)
+    with col2:
+        bottled = st.number_input("Bottled drinks per week", min_value=0.0, value=2.0)
+        meat = st.number_input("Meat meals per week", min_value=0.0, value=5.0)
+
+    shower_l = shower * 9 * 365
+    laundry_l = laundry * 50 * 52
+    tap_l = tap * 365
+    bottled_l = bottled * 1.5 * 52
+    virtual = meat * 1500 * 52 + max(0.0, 14 - meat) * 250 * 52
+    total_water = shower_l + laundry_l + tap_l + bottled_l + virtual
+
+    if st.button("Calculate water"):
+        st.session_state["water"] = total_water
+        st.subheader(f"About {total_water:,.0f} litres per year")
+        st.bar_chart({
+            "Showers": shower_l,
+            "Laundry": laundry_l,
+            "Tap / dishes": tap_l,
+            "Bottled drinks": bottled_l,
+            "Food (virtual)": virtual,
+        })
+        st.markdown("**Tips**")
+        if shower > 10:
+            st.write("- Shorter showers save a lot of litres every week.")
+        if bottled > 3:
+            st.write("- Use a refillable bottle instead of many plastic bottles.")
+        if meat > 7:
+            st.write("- Plant meals usually need far less hidden water than meat meals.")
+        if total_water < 800000:
+            st.success("Direct use looks controlled. Food is still the hidden majority.")
+        st.caption("Virtual water is water used to grow and produce food.")
+
+elif page == "Waste and recycling":
+    st.header("Waste and recycling")
+    st.write("How much trash you send out, and how much is recycled or composted.")
+
+    bags = st.number_input("Trash bags per week", min_value=0.0, value=3.0)
+    kg = st.number_input("Typical bag weight (kg)", min_value=1.0, value=5.0)
+    recycle = st.slider("Share recycled (%)", min_value=0, max_value=100, value=30)
+    compost = st.selectbox("Compost food scraps?", ["No", "Yes"])
+    ewaste = st.number_input("Old gadgets thrown away per year", min_value=0, value=1)
+
+    generated = bags * kg * 52
+    recycled = generated * (recycle / 100)
+    composted = generated * 0.25 if compost == "Yes" else 0
+    landfill = max(0.0, generated - recycled - composted)
+    diversion = ((recycled + composted) / generated * 100) if generated else 0
+
+    if st.button("Calculate waste"):
+        st.session_state["waste"] = landfill
+        st.subheader(f"About {landfill:,.0f} kg landfill per year")
+        st.write(f"Diversion rate about {diversion:.0f}%.")
+        st.bar_chart({
+            "Generated": generated,
+            "Recycled": recycled,
+            "Composted": composted,
+            "Landfill": landfill,
+            "E-waste (kg eq.)": ewaste * 4,
+        })
+        st.markdown("**Tips**")
+        if diversion < 40:
+            st.write("- Sort paper, metal, and glass. Check what your city actually recycles.")
+        if compost == "No":
+            st.write("- Composting leftover food cuts landfill methane.")
+        if ewaste > 0:
+            st.write("- Give working gadgets a second home instead of the bin.")
+        if diversion >= 50:
+            st.success("Diversion looks strong. Keep reducing what you buy first.")
+
+elif page == "Diet impact":
+    st.header("Diet impact")
+    st.write("Emissions from meals. This is about the planet, not about bodies.")
+
+    meat = st.number_input("Meat meals per week", min_value=0.0, value=5.0)
+    dairy = st.number_input("Dairy servings per week", min_value=0.0, value=7.0)
+    plant = st.number_input("Fully plant meals per week", min_value=0.0, value=8.0)
+    waste = st.slider("Food thrown away (%)", min_value=0, max_value=50, value=15)
+
+    meat_co2 = meat * 52 * 2.5
+    dairy_co2 = dairy * 52 * 0.6
+    plant_co2 = plant * 52 * 0.35
+    base = meat_co2 + dairy_co2 + plant_co2
+    waste_co2 = base * (waste / 100)
+    total_diet = base + waste_co2
+    water = meat * 52 * 1500 + dairy * 52 * 200 + plant * 52 * 250
+
+    if st.button("Calculate diet"):
+        st.session_state["diet"] = total_diet
+        st.subheader(f"About {total_diet:,.0f} kg CO2e per year")
+        st.write(f"Virtual water from this diet is roughly {water:,.0f} L per year.")
+        st.bar_chart({
+            "Meat meals": meat_co2,
+            "Dairy": dairy_co2,
+            "Plant meals": plant_co2,
+            "Food waste extra": waste_co2,
+        })
+        st.markdown("**Tips**")
+        if waste > 10:
+            st.write("- Plan leftovers. Wasted food wastes the water and energy that made it.")
+        if meat > 7:
+            st.write("- Swap one meat meal for beans, eggs, or vegetables this week.")
+        if plant < 5:
+            st.write("- More plant meals usually means lower emissions.")
+        if total_diet < 1200:
+            st.success("This mix is on the lighter side. Keep food waste low.")
+
+elif page == "Transport":
+    st.header("Transport")
+    st.write("Weekly travel converted to yearly emissions.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        car = st.number_input("Car (km per week)", min_value=0.0, value=40.0)
+        bus = st.number_input("Bus or train (km per week)", min_value=0.0, value=20.0)
+        bike = st.number_input("Bicycle (km per week)", min_value=0.0, value=8.0)
+    with col2:
+        walk = st.number_input("Walking (km per week)", min_value=0.0, value=5.0)
+        flights = st.number_input("Short flights per year", min_value=0, value=0)
+
+    car_co2 = car * 52 * 0.17
+    bus_co2 = bus * 52 * 0.08
+    bike_co2 = bike * 52 * 0.005
+    flight_co2 = flights * 250
+    total_travel = car_co2 + bus_co2 + bike_co2 + flight_co2
+
+    if st.button("Calculate transport"):
+        st.session_state["transport"] = total_travel
+        st.subheader(f"About {total_travel:,.0f} kg CO2e per year")
+        st.bar_chart({
+            "Car": car_co2,
+            "Bus / train": bus_co2,
+            "Bicycle": bike_co2,
+            "Walking": 0,
+            "Flights": flight_co2,
+        })
+        st.markdown("**Tips**")
+        if car > 30:
+            st.write("- Bundle errands and share rides when a car is needed.")
+        if bike + walk < 8:
+            st.write("- Walking or cycling short hops has almost no tailpipe emissions.")
+        if flights > 0:
+            st.write("- Trains replace many short flights on land routes.")
+        if car_co2 < 300:
+            st.success("Active travel is carrying a good share of your week.")
+
+elif page == "Ecological footprint":
+    st.header("Ecological footprint")
+    st.write("A classroom sketch of how many Earths this lifestyle would need.")
+
+    home = st.number_input("Home floor area (m²)", min_value=10.0, value=90.0)
+    people = st.number_input("People sharing that home", min_value=1, value=4)
+    meat = st.number_input("Meat meals per week", min_value=0.0, value=5.0)
+    car = st.number_input("Car km per week", min_value=0.0, value=40.0)
+    goods = st.number_input("New goods (USD per month)", min_value=0.0, value=40.0)
+
+    housing = home / people / 55
+    food = 0.6 + meat * 0.08
+    mobility = (car * 52) / 12000
+    goods_gha = (goods * 12) / 2500
+    gha = housing + food + mobility + goods_gha
+    earths = gha / 1.6
+
+    if st.button("Calculate ecological footprint"):
+        st.session_state["ecological"] = earths
+        st.subheader(f"About {earths:.2f} Earths")
+        st.write(f"About {gha:.2f} global hectares vs 1.6 gha fair share.")
+        st.bar_chart({
+            "Housing": housing,
+            "Food": food,
+            "Mobility": mobility,
+            "Goods": goods_gha,
+        })
+        st.markdown("**Tips**")
+        if earths > 1:
+            st.write("- If everyone lived this way, we would need more than one Earth.")
+        if home / people > 40:
+            st.write("- Sharing space and heating one room at a time helps.")
+        if goods > 60:
+            st.write("- Repair and second-hand goods shrink the stuff footprint.")
+        if earths <= 1:
+            st.success("This sketch is near one-planet living.")
+
+elif page == "Shopping and goods":
+    st.header("Shopping and goods")
+    st.write("Clothes, gadgets, and delivery packaging.")
+
+    clothes = st.number_input("New clothing items per year", min_value=0, value=8)
+    electronics = st.number_input("New electronics per year", min_value=0, value=1)
+    orders = st.number_input("Online orders per month", min_value=0, value=3)
+    secondhand = st.slider("Share bought second-hand (%)", min_value=0, max_value=100, value=10)
+
+    discount = 1 - secondhand / 200
+    clothes_co2 = clothes * 20 * discount
+    electronics_co2 = electronics * 80
+    packing = orders * 12 * 1.8
+    total_shop = clothes_co2 + electronics_co2 + packing
+
+    if st.button("Calculate shopping"):
+        st.session_state["shopping"] = total_shop
+        st.subheader(f"About {total_shop:,.0f} kg CO2e per year")
+        st.bar_chart({
+            "Clothes": clothes_co2,
+            "Electronics": electronics_co2,
+            "Packaging / vans": packing,
+        })
+        st.markdown("**Tips**")
+        if clothes > 10:
+            st.write("- Wear items longer. Fashion has a large hidden footprint.")
+        if orders > 4:
+            st.write("- Combine deliveries. Packaging and vans add up.")
+        if secondhand < 20:
+            st.write("- Borrow, swap, or buy used first.")
+        if total_shop < 200:
+            st.success("Buying less, and used, is already helping.")
+
+elif page == "Digital footprint":
+    st.header("Digital footprint")
+    st.write("Streaming, devices, calls, and stored files.")
+
+    stream = st.number_input("Streaming hours per day", min_value=0.0, value=2.0)
+    devices = st.number_input("Internet-connected devices", min_value=1, value=4)
+    calls = st.number_input("Video-call hours per week", min_value=0.0, value=3.0)
+    cloud = st.number_input("Cloud photos and files (GB)", min_value=0.0, value=40.0)
+
+    stream_co2 = stream * 365 * 0.055
+    devices_co2 = devices * 25
+    calls_co2 = calls * 52 * 0.12
+    cloud_co2 = cloud * 0.15
+    total_digital = stream_co2 + devices_co2 + calls_co2 + cloud_co2
+
+    if st.button("Calculate digital"):
+        st.session_state["digital"] = total_digital
+        st.subheader(f"About {total_digital:,.0f} kg CO2e per year")
+        st.bar_chart({
+            "Streaming": stream_co2,
+            "Devices": devices_co2,
+            "Video calls": calls_co2,
+            "Cloud storage": cloud_co2,
+        })
+        st.markdown("**Tips**")
+        if stream > 3:
+            st.write("- Download Wi-Fi videos instead of extra-high streaming on mobile data.")
+        if devices > 6:
+            st.write("- Keep phones and laptops longer. Making a device is the big hit.")
+        if cloud > 80:
+            st.write("- Delete duplicate photos. Stored files still sit on powered servers.")
+        if total_digital < 150:
+            st.success("Digital use is modest. Device lifetime still matters most.")
+
+elif page == "Living score":
+    st.header("Living score")
+    st.write("A simple 0–100 picture from calculators you already ran in this session.")
+
+    keys = [
+        ("carbon", "Carbon", 1500, 8000),
+        ("energy", "Energy", 800, 5800),
+        ("water", "Water", 200000, 2200000),
+        ("waste", "Waste", 50, 800),
+        ("diet", "Diet", 400, 2900),
+        ("transport", "Transport", 200, 3200),
+        ("ecological", "Earths", 0.7, 2.5),
+        ("shopping", "Shopping", 80, 880),
+        ("digital", "Digital", 40, 440),
+    ]
+    scores = {}
+    for key, label, good, bad in keys:
+        if key in st.session_state:
+            value = st.session_state[key]
+            score = max(0, min(100, 100 - ((value - good) / (bad - good)) * 100))
+            scores[label] = score
+
+    if not scores:
+        st.info("Run at least one calculator first, then come back here.")
+    else:
+        average = sum(scores.values()) / len(scores)
+        st.subheader(f"Score: {average:.0f} / 100")
+        st.bar_chart(scores)
+        weakest = min(scores, key=scores.get)
+        st.write(f"Biggest room to improve: {weakest}.")
+        if average >= 75:
+            st.success("This is a strong classroom score. Teach one habit to someone at home.")
+        else:
+            st.info("Open the lowest bar calculator and follow its first tip.")
+
+elif page == "Guide":
+    st.header("Sustainability guide")
+    st.write("Simple answers you can use without extra packages.")
+
+    q = st.text_input("What do you want help with?")
+    if st.button("Get tips"):
+        text = q.lower()
+        if "car" in text or "travel" in text or "transport" in text:
+            st.write("Walk or cycle short trips. Share rides. Bus and train usually beat a car for one person.")
+        elif "water" in text or "shower" in text:
+            st.write("Shorter showers, full laundry loads, and a refillable bottle save the most household water.")
+        elif "food" in text or "diet" in text or "meat" in text:
+            st.write("Cut food waste first. Then add more plant meals. That is about the planet, not about bodies.")
+        elif "waste" in text or "recycle" in text or "plastic" in text:
+            st.write("Buy less, reuse, then recycle what your city accepts. Compost food scraps if you can.")
+        elif "energy" in text or "electric" in text or "light" in text:
+            st.write("Switch off unused lights and chargers. Set cooling around 24–26°C. LEDs use less power.")
+        elif "score" in text or "start" in text or text.strip() == "":
+            st.write("Start with carbon, then energy, then water. Change the biggest bar first.")
+        else:
+            st.write("Run a calculator, look at the tallest bar, and change that one habit this week.")
+        st.caption("These are learning tips, not official certificates.")
